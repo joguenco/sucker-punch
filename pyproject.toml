@@ -1,0 +1,33 @@
+[project]
+name = "sucker-punch"
+version = "0.1.0"
+description = "XML RPC Client for Point of Sale"
+readme = "README.md"
+dependencies = [
+    "pydantic>=2.14.0",
+    "pyside6>=6.12.0",
+]
+
+requires-python = ">=3.12"
+
+[project.scripts]
+sucker-punch = "sucker_punch:main"
+
+[build-system]
+requires = ["uv_build>=0.12.23,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.16.10",
+]
+
+[tool.ruff]
+line-length = 90
+
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "space"
+
+[tool.ruff.lint]
+extend-select = ["E501"]
