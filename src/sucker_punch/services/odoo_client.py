@@ -113,11 +113,12 @@ class OdooClient:
             'res.company',
             'read',
             ids=[odoo_user['company_id'][0]],
-            fields=['country_code'],
+            fields=['country_code', 'tax_calculation_rounding_method'],
         )[0]
         return Session(
             uid=uid,
             user_name=odoo_user['name'],
             company_name=odoo_user['company_id'][1],
             country_code=company['country_code'] or '',
+            tax_rounding=company['tax_calculation_rounding_method'] or 'round_per_line',
         )

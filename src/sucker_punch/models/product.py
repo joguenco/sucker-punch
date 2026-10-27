@@ -17,6 +17,7 @@ class Product(BaseModel):
         'lst_price',
         'uom_id',
         'qty_available',
+        'is_storable',
         'taxes_id',
     )
 
@@ -27,8 +28,11 @@ class Product(BaseModel):
     price: float = Field(0.0, alias='lst_price')
     uom: str = Field('', alias='uom_id')
     stock: float = Field(0.0, alias='qty_available')
+    is_storable: bool = False  # «Seguimiento de inventario»: si no, el stock siempre es 0
     tax_ids: list[int] = Field(default_factory=list, alias='taxes_id')
-    tax_percent: float = 0.0  # lo calcula ProductService a partir de tax_ids
+    # Los llena ProductService: % de cada impuesto ({id: 15.0}) y la suma
+    tax_rates: dict[int, float] = Field(default_factory=dict)
+    tax_percent: float = 0.0
 
     @field_validator('barcode', 'default_code', mode='before')
     @classmethod

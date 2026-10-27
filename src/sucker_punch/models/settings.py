@@ -18,6 +18,9 @@ class Settings(BaseModel):
     database: str = 'odoo19_ec'
     api_key: str = ''
     font_size: int = 14
+    # Al guardar, avisar si un producto no tiene stock (apagado: se vende igual y en
+    # Odoo el stock queda en negativo)
+    stock_warning: bool = True
     # campo → FROM_SYSTEM, FROM_ENV_FILE o FROM_DEFAULT ('' si no está en ningún lado)
     sources: dict[str, str] = Field(default_factory=dict)
 

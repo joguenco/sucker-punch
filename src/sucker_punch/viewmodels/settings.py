@@ -7,7 +7,9 @@ from ..views.ui_settings import Ui_Settings
 
 
 class SettingsDialog(QDialog):
-    """Configuración: conexión a Odoo y tamaño de letra. Enter guarda, Esc cancela.
+    """Configuración: conexión a Odoo, tamaño de letra y aviso de stock.
+
+    Enter guarda, Esc cancela, Espacio marca o desmarca la casilla.
 
     Al lado de cada dato dice de dónde sale: Sistema, .env o Por defecto. Lo que viene de
     una variable de entorno del sistema queda bloqueado, porque se cambia en Windows.
@@ -24,12 +26,17 @@ class SettingsDialog(QDialog):
             'database': (self.ui.txt_database, self.ui.lbl_database_source),
             'api_key': (self.ui.txt_api_key, self.ui.lbl_api_key_source),
             'font_size': (self.ui.spin_font_size, self.ui.lbl_font_size_source),
+            'stock_warning': (
+                self.ui.chk_stock_warning,
+                self.ui.lbl_stock_warning_source,
+            ),
         }
 
         self.ui.txt_url.setText(settings.url)
         self.ui.txt_database.setText(settings.database)
         self.ui.txt_api_key.setText(settings.api_key)
         self.ui.spin_font_size.setValue(settings.font_size)
+        self.ui.chk_stock_warning.setChecked(settings.stock_warning)
         self.update_preview(settings.font_size)
         for field, (editor, source) in self.fields.items():
             source.setText(settings.sources.get(field, ''))
@@ -48,6 +55,7 @@ class SettingsDialog(QDialog):
             database=self.ui.txt_database.text().strip(),
             api_key=self.ui.txt_api_key.text().strip(),
             font_size=self.ui.spin_font_size.value(),
+            stock_warning=self.ui.chk_stock_warning.isChecked(),
             sources=self.settings.sources,
         )
 

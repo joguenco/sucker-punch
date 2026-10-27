@@ -12,6 +12,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QTableWidget, QTableWidgetItem
 
 from ..models.sale_line import SaleLine
+from ..services.odoo_totals import money
 
 # Ancho mínimo de cada columna y su peso: si sobra ancho, se reparte según el peso
 WIDTHS = {
@@ -98,7 +99,7 @@ class SaleLinesTable:
             'quantity': f'{line.quantity:.2f}',
             'price': f'{line.price:.4f}',
             'discount': '0.00',
-            'subtotal': f'{line.subtotal:.2f}',
+            'subtotal': f'{money(line.subtotal):.2f}',
             'tax': f'{product.tax_percent:g}',
             'ice': '0.00',
         }

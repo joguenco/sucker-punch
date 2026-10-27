@@ -28,7 +28,22 @@ VARIABLES = {
     'database': 'ODOO_DB',
     'api_key': 'ODOO_API_KEY',
     'font_size': 'FONT_SIZE',
+    'stock_warning': 'STOCK_WARNING',
 }
+
+
+def to_bool(value) -> bool:
+    """1, true, sí… = encendido; 0, false, no, off = apagado (otra cosa: encendido)."""
+    if isinstance(value, bool):
+        return value
+    return value.strip().lower() not in ('0', 'false', 'no', 'off')
+
+
+def to_text(value) -> str:
+    """Cómo se escribe cada dato en el .env (sí/no como 1/0)."""
+    if isinstance(value, bool):
+        return '1' if value else '0'
+    return str(value)
 
 
 def env_file_path() -> Path:
@@ -90,6 +105,7 @@ class SettingsService:
         except ValueError:
             font_size = default.font_size
         values['font_size'] = min(max(font_size, FONT_SIZE_MIN), FONT_SIZE_MAX)
+        values['stock_warning'] = to_bool(values['stock_warning'])
         return Settings(**values, sources=sources)
 
     def save(self, settings: Settings):
@@ -97,7 +113,7 @@ class SettingsService:
         write_env_file(
             self.path,
             {
-                name: str(getattr(settings, field))
+                name: to_text(getattr(settings, field))
                 for field, name in VARIABLES.items()
                 if not settings.is_from_system(field)
             },

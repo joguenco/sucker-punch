@@ -42,6 +42,7 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QDialog,
     QFrame,
     QGridLayout,
@@ -62,12 +63,15 @@ class Ui_Settings(object):
     def setupUi(self, Settings):
         if not Settings.objectName():
             Settings.setObjectName('Settings')
-        Settings.resize(680, 460)
+        Settings.resize(680, 520)
         Settings.setStyleSheet(
             'QLabel#lbl_url_source, QLabel#lbl_database_source,\n'
-            'QLabel#lbl_api_key_source, QLabel#lbl_font_size_source {\n'
+            'QLabel#lbl_api_key_source, QLabel#lbl_font_size_source,\n'
+            'QLabel#lbl_stock_warning_source {\n'
             '	color: #666666;\n'
-            '}'
+            '}\n'
+            '/* La casilla crece con el tama\u00f1o de letra (1em = alto de la letra) */\n'
+            'QCheckBox::indicator { width: 1em; height: 1em; }'
         )
         self.verticalLayout = QVBoxLayout(Settings)
         self.verticalLayout.setObjectName('verticalLayout')
@@ -168,6 +172,26 @@ class Ui_Settings(object):
 
         self.verticalLayout.addWidget(self.group_display)
 
+        self.group_sales = QGroupBox(Settings)
+        self.group_sales.setObjectName('group_sales')
+        self.gridLayout_3 = QGridLayout(self.group_sales)
+        self.gridLayout_3.setObjectName('gridLayout_3')
+        self.chk_stock_warning = QCheckBox(self.group_sales)
+        self.chk_stock_warning.setObjectName('chk_stock_warning')
+        self.chk_stock_warning.setChecked(True)
+
+        self.gridLayout_3.addWidget(self.chk_stock_warning, 0, 0, 1, 1)
+
+        self.lbl_stock_warning_source = QLabel(self.group_sales)
+        self.lbl_stock_warning_source.setObjectName('lbl_stock_warning_source')
+        self.lbl_stock_warning_source.setMinimumSize(QSize(90, 0))
+
+        self.gridLayout_3.addWidget(self.lbl_stock_warning_source, 0, 1, 1, 1)
+
+        self.gridLayout_3.setColumnStretch(0, 1)
+
+        self.verticalLayout.addWidget(self.group_sales)
+
         self.lbl_status = QLabel(Settings)
         self.lbl_status.setObjectName('lbl_status')
         self.lbl_status.setWordWrap(True)
@@ -213,7 +237,8 @@ class Ui_Settings(object):
         QWidget.setTabOrder(self.txt_url, self.txt_database)
         QWidget.setTabOrder(self.txt_database, self.txt_api_key)
         QWidget.setTabOrder(self.txt_api_key, self.spin_font_size)
-        QWidget.setTabOrder(self.spin_font_size, self.push_save)
+        QWidget.setTabOrder(self.spin_font_size, self.chk_stock_warning)
+        QWidget.setTabOrder(self.chk_stock_warning, self.push_save)
         QWidget.setTabOrder(self.push_save, self.push_cancel)
         QWidget.setTabOrder(self.push_cancel, self.push_test)
 
@@ -313,6 +338,31 @@ class Ui_Settings(object):
                 'As\u00ed se ver\u00e1 la letra: CHOCOLATE LISTO 220GR   $ 1.54',
                 None,
             )
+        )
+        self.group_sales.setTitle(QCoreApplication.translate('Settings', 'Ventas', None))
+        # if QT_CONFIG(tooltip)
+        self.chk_stock_warning.setToolTip(
+            QCoreApplication.translate(
+                'Settings',
+                'Encendido: al guardar avisa si un producto no tiene stock suficiente. Apagado: no avisa y en Odoo el stock queda en negativo.',
+                None,
+            )
+        )
+        # endif // QT_CONFIG(tooltip)
+        self.chk_stock_warning.setText(
+            QCoreApplication.translate('Settings', 'Avisar cuando no hay stock', None)
+        )
+        # if QT_CONFIG(tooltip)
+        self.lbl_stock_warning_source.setToolTip(
+            QCoreApplication.translate(
+                'Settings',
+                'De d\u00f3nde se lee: Sistema (variable de entorno) o .env (archivo junto al programa)',
+                None,
+            )
+        )
+        # endif // QT_CONFIG(tooltip)
+        self.lbl_stock_warning_source.setText(
+            QCoreApplication.translate('Settings', '.env', None)
         )
         self.lbl_status.setText('')
         self.push_test.setText(

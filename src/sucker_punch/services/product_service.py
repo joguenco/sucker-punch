@@ -16,7 +16,8 @@ class ProductService:
         self.odoo = odoo
         self._rates = None  # {id_impuesto: porcentaje}
 
-    def _tax_percent(self, tax_ids: list[int]) -> float:
+    def _tax_rates(self, tax_ids: list[int]) -> dict[int, float]:
+        """% de cada impuesto de venta del producto: {id: 15.0}."""
         if self._rates is None:
             rows = self.odoo.call(
                 'account.tax',
@@ -25,7 +26,9 @@ class ProductService:
                 fields=['amount'],
             )
             self._rates = {row['id']: row['amount'] for row in rows}
-        return sum(self._rates.get(tax_id, 0.0) for tax_id in tax_ids)
+        return {
+            tax_id: self._rates[tax_id] for tax_id in tax_ids if tax_id in self._rates
+        }
 
     def _read(self, domain: list, limit: int) -> list[Product]:
         rows = self.odoo.call(
@@ -40,7 +43,8 @@ class ProductService:
         )
         products = [Product.model_validate(row) for row in rows]
         for product in products:
-            product.tax_percent = self._tax_percent(product.tax_ids)
+            product.tax_rates = self._tax_rates(product.tax_ids)
+            product.tax_percent = sum(product.tax_rates.values())
         return products
 
     def by_code(self, code: str) -> list[Product]:

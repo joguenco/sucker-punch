@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>680</width>
-    <height>460</height>
+    <height>520</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,9 +15,12 @@
   </property>
   <property name="styleSheet">
    <string notr="true">QLabel#lbl_url_source, QLabel#lbl_database_source,
-QLabel#lbl_api_key_source, QLabel#lbl_font_size_source {
+QLabel#lbl_api_key_source, QLabel#lbl_font_size_source,
+QLabel#lbl_stock_warning_source {
 	color: #666666;
-}</string>
+}
+/* La casilla crece con el tamaño de letra (1em = alto de la letra) */
+QCheckBox::indicator { width: 1em; height: 1em; }</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
@@ -183,6 +186,44 @@ QLabel#lbl_api_key_source, QLabel#lbl_font_size_source {
     </widget>
    </item>
    <item>
+    <widget class="QGroupBox" name="group_sales">
+     <property name="title">
+      <string>Ventas</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_3" columnstretch="1,0">
+      <item row="0" column="0">
+       <widget class="QCheckBox" name="chk_stock_warning">
+        <property name="toolTip">
+         <string>Encendido: al guardar avisa si un producto no tiene stock suficiente. Apagado: no avisa y en Odoo el stock queda en negativo.</string>
+        </property>
+        <property name="text">
+         <string>Avisar cuando no hay stock</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLabel" name="lbl_stock_warning_source">
+        <property name="minimumSize">
+         <size>
+          <width>90</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="toolTip">
+         <string>De dónde se lee: Sistema (variable de entorno) o .env (archivo junto al programa)</string>
+        </property>
+        <property name="text">
+         <string>.env</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
     <widget class="QLabel" name="lbl_status">
      <property name="text">
       <string/>
@@ -264,6 +305,7 @@ QLabel#lbl_api_key_source, QLabel#lbl_font_size_source {
   <tabstop>txt_database</tabstop>
   <tabstop>txt_api_key</tabstop>
   <tabstop>spin_font_size</tabstop>
+  <tabstop>chk_stock_warning</tabstop>
   <tabstop>push_save</tabstop>
   <tabstop>push_cancel</tabstop>
   <tabstop>push_test</tabstop>

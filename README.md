@@ -111,6 +111,7 @@ Cada dato se busca en este orden y se usa el primero que se encuentre:
 | `ODOO_DB` | Base de datos | `odoo19_ec` |
 | `ODOO_API_KEY` | Clave API del usuario que vende (ej.: Caja) | — |
 | `FONT_SIZE` | Tamaño de letra (10 a 24) | `14` |
+| `STOCK_WARNING` | Avisar al guardar si no hay stock: `1` sí, `0` no (se vende igual y en Odoo el stock queda en negativo) | `1` |
 
 Configuración muestra al lado de cada dato de dónde sale (**Sistema**, **.env** o
 **Por defecto**) y solo escribe en el `.env`. Lo que viene del sistema queda bloqueado: se
@@ -120,7 +121,7 @@ cambia en las variables de entorno. Ejemplo en `.env.example`.
 | Tecla | Qué hace |
 |---|---|
 | Enter | Busca el código (o el nombre) y salta a una fila nueva |
-| `5.CODIGO` + Enter | Cantidad 5 (sirve con escáner: escribir `5.` y escanear) |
+| `5.CODIGO` o `5*CODIGO` + Enter | Cantidad 5 (sirve con escáner: escribir `5.` y escanear). Decimales: `1,5.CODIGO` o `1.5*CODIGO`. La cantidad debe ser mayor que 0 |
 | F9 | Maestro de Artículos (inventario) |
 | F2 | Cambiar el precio unitario de la línea (solo para esta factura). Enter cambia, Esc no |
 | ↑ ↓ | Cambiar de línea |
@@ -144,6 +145,11 @@ o se actualizó).
 En Odoo cada pago se registra en el diario que tenga su **forma de pago SRI**
 (Facturación → Configuración → Diarios): Efectivo `01`, Tarjeta `19`, Depósito y Otros `20`.
 Si ningún diario la tiene, se usa el de Efectivo o el de Banco.
+
+Los totales se calculan con el mismo redondeo que Odoo (`services/odoo_totals.py`, según
+Facturación → Ajustes → Impuestos), así el total y el vuelto son los que factura Odoo. Un
+producto sin impuesto de venta no entra a la factura (el SRI la rechaza), y el aviso de
+stock solo sale en productos con seguimiento de inventario.
 
 El usuario de la clave API (ej.: Caja) necesita en Odoo: Ventas, Inventario (validar la
 entrega), Facturación (confirmar la factura y registrar pagos) y crear contactos.

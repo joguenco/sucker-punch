@@ -28,9 +28,9 @@ QLabel#lbl_date_title, QLabel#lbl_total_title { color: #000080; font-weight: bol
 QFrame#frameTotals { background: #fafafa; border: 1px solid #c8c8c8; border-radius: 4px; }
 QFrame#frameTotals QLabel { background: transparent; }
 QLabel#lbl_t0_value, QLabel#lbl_tiva_value, QLabel#lbl_iva_value, QLabel#lbl_discount_value, QLabel#lbl_ice_value {
-    background: #e3f5e3; border: 1px solid #9ccc9c; padding: 2px 8px; min-width: 70px; }
+    background: #e3f5e3; border: 1px solid #9ccc9c; padding: 2px 8px; }
 QLabel#lbl_total { background: #e3f5e3; border: 1px solid #9ccc9c; border-radius: 4px;
-                   color: black; font-weight: bold; padding: 2px 14px; min-width: 150px; }
+                   color: black; font-weight: bold; padding: 2px 14px; }
 QPushButton#push_save { background: #f4f6fb; color: #000080; border: 1px solid #000080;
                         border-radius: 4px; padding: 6px 14px; font-weight: bold; }
 QPushButton#push_save:hover { background: #e6ff8c; }</string>
