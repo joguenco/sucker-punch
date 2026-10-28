@@ -6,6 +6,10 @@ quedó guardado; por eso el error dice qué alcanzó a hacerse.
 Formas de pago: se registra un pago por cada una, en el diario que tenga su forma de
 pago SRI (Facturación → Configuración → Diarios). El XML del SRI toma la forma de pago
 del diario de cada pago.
+
+Diarios permitidos del usuario (módulo account_restrict_journal): de cada tipo de diario
+que tenga alguno permitido, solo puede usar esos; los demás tipos quedan libres. La
+factura va a su diario de ventas permitido y los pagos, a los diarios que puede usar.
 """
 
 from ..models.payment import METHODS, Payment
@@ -34,8 +38,10 @@ class SaleError(Exception):
 
 
 class SaleService:
-    def __init__(self, odoo: OdooClient):
+    def __init__(self, odoo: OdooClient, allowed_journals: list[int] = ()):
         self.odoo = odoo
+        self.allowed_journals = list(allowed_journals)  # vacío: puede usar todos
+        self._restricted_types = None  # tipos de diario de los permitidos
         self._sri_ids = None  # {código SRI: id de l10n_ec.sri.payment}
 
     def _context(self, **extra) -> dict:
@@ -53,30 +59,57 @@ class SaleService:
             self._sri_ids = {row['code']: row['id'] for row in rows}
         return self._sri_ids
 
+    def _usable(self) -> list:
+        """Dominio de los diarios que el usuario puede usar: de los tipos que tienen
+        alguno permitido, solo los permitidos. Sin permitidos, todos."""
+        if not self.allowed_journals:
+            return []
+        if self._restricted_types is None:
+            rows = self.odoo.call(
+                'account.journal',
+                'search_read',
+                domain=[['id', 'in', self.allowed_journals]],
+                fields=['type'],
+            )
+            self._restricted_types = sorted({row['type'] for row in rows})
+        return [
+            '|',
+            ['type', 'not in', self._restricted_types],
+            ['id', 'in', self.allowed_journals],
+        ]
+
+    def _search_journal(self, domain: list) -> int | None:
+        ids = self.odoo.call(
+            'account.journal', 'search', limit=1, domain=domain + self._usable()
+        )
+        return ids[0] if ids else None
+
+    def _sale_journal(self) -> int | None:
+        """Diario de ventas permitido del usuario. None: el que elija Odoo."""
+        if not self.allowed_journals:
+            return None
+        return self._search_journal(
+            [['type', '=', 'sale'], ['id', 'in', self.allowed_journals]]
+        )
+
     def _journal(self, method: str) -> int:
         """Diario para esa forma de pago: el que tiene su código SRI. Si ninguno lo tiene,
         el de Efectivo (solo para efectivo) o el de Banco."""
+        by_code = [
+            ['type', 'in', ['cash', 'bank']],
+            ['l10n_ec_sri_payment_id.code', '=', SRI_CODES[method]],
+        ]
         if self._sri_payment_ids():
             try:
-                ids = self.odoo.call(
-                    'account.journal',
-                    'search',
-                    limit=1,
-                    domain=[
-                        ['type', 'in', ['cash', 'bank']],
-                        ['l10n_ec_sri_payment_id.code', '=', SRI_CODES[method]],
-                    ],
-                )
+                journal = self._search_journal(by_code)
             except OdooError:  # sin el módulo l10n_ec_base no existe ese campo
-                ids = []
-            if ids:
-                return ids[0]
+                journal = None
+            if journal:
+                return journal
         for journal_type in ('cash', 'bank') if method == 'cash' else ('bank',):
-            ids = self.odoo.call(
-                'account.journal', 'search', limit=1, domain=[['type', '=', journal_type]]
-            )
-            if ids:
-                return ids[0]
+            journal = self._search_journal([['type', '=', journal_type]])
+            if journal:
+                return journal
         raise OdooError(f'No hay un diario para {METHODS[method]} en Odoo.')
 
     def save(self, lines: list[SaleLine], customer: int, payment: Payment) -> SaleResult:
@@ -84,32 +117,34 @@ class SaleService:
         odoo = self.odoo
         done = []
         amounts = payment.amounts()
-        step = 'crear el pedido de venta'
+        # Los diarios se eligen antes de crear nada: si falta uno, no queda nada a medias
+        step = 'elegir los diarios'
         try:
-            order_id = odoo.call(
-                'sale.order',
-                'create',
-                vals_list=[
-                    {
-                        'partner_id': customer,
-                        # Sin posición fiscal: el IVA es el del producto, el mismo que
-                        # muestra la factura de la app
-                        'fiscal_position_id': False,
-                        'order_line': [
-                            [
-                                0,
-                                0,
-                                {
-                                    'product_id': line.product.id,
-                                    'product_uom_qty': line.quantity,
-                                    'price_unit': line.price,
-                                },
-                            ]
-                            for line in lines
-                        ],
-                    }
+            sale_journal = self._sale_journal()
+            journals = {method: self._journal(method) for method in amounts}
+
+            step = 'crear el pedido de venta'
+            order_vals = {
+                'partner_id': customer,
+                # Sin posición fiscal: el IVA es el del producto, el mismo que muestra
+                # la factura de la app
+                'fiscal_position_id': False,
+                'order_line': [
+                    [
+                        0,
+                        0,
+                        {
+                            'product_id': line.product.id,
+                            'product_uom_qty': line.quantity,
+                            'price_unit': line.price,
+                        },
+                    ]
+                    for line in lines
                 ],
-            )[0]
+            }
+            if sale_journal:
+                order_vals['journal_id'] = sale_journal  # la factura sale en ese diario
+            order_id = odoo.call('sale.order', 'create', vals_list=[order_vals])[0]
             order = odoo.call('sale.order', 'read', ids=[order_id], fields=['name'])[0]
             done.append(f'pedido {order["name"]}')
 
@@ -195,7 +230,7 @@ class SaleService:
             methods = sorted(amounts, key=lambda method: method == 'cash')
             for number, method in enumerate(methods, start=1):
                 step = f'registrar el pago en {METHODS[method]}'
-                vals = {'journal_id': self._journal(method)}
+                vals = {'journal_id': journals[method]}
                 if number < len(methods):
                     vals['amount'] = amounts[method]
                 wizard = odoo.call(

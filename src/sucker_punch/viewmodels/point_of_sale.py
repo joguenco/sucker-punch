@@ -13,7 +13,13 @@ from datetime import datetime
 
 from PySide6.QtCore import QEvent, Qt, QTimer, Signal
 from PySide6.QtGui import QFont, QKeySequence, QShortcut
-from PySide6.QtWidgets import QDialog, QHeaderView, QMainWindow, QMessageBox
+from PySide6.QtWidgets import (
+    QAbstractItemView,
+    QDialog,
+    QHeaderView,
+    QMainWindow,
+    QMessageBox,
+)
 
 from ..models.payment import Payment
 from ..models.product import Product
@@ -65,7 +71,7 @@ class PointOfSale(QMainWindow):
         self.session = session
         self.stock_warning = stock_warning
         self.products = ProductService(odoo)
-        self.sales = SaleService(odoo)
+        self.sales = SaleService(odoo, session.allowed_journal_ids)
         self.customers = CustomerService(odoo)
         self.row = 0  # fila del cursor (invoice.blank_row = fila en blanco del final)
 
@@ -82,6 +88,7 @@ class PointOfSale(QMainWindow):
         header.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
         header.setSectionsClickable(False)
         table.clicked.connect(lambda index: self.go_to(index.row()))
+        table.viewport().installEventFilter(self)  # clic en la parte vacía de la tabla
 
         self.ui.push_save.clicked.connect(self.save)
         for keys in (
@@ -120,6 +127,10 @@ class PointOfSale(QMainWindow):
         super().changeEvent(event)
         if event.type() == QEvent.Type.FontChange:  # cambió el tamaño en Configuración
             self.apply_font_sizes()
+        elif event.type() == QEvent.Type.ActivationChange and self.isActiveWindow():
+            # Al salir de la app (Alt+Tab, clic en otro programa) Qt cierra el editor de
+            # la celda: al volver se abre otra vez
+            QTimer.singleShot(0, self.restore_cell)
 
     def apply_font_sizes(self):
         if getattr(self, '_applying_fonts', False):
@@ -170,6 +181,13 @@ class PointOfSale(QMainWindow):
         table.setFocus()
         table.edit(index)
         table.scrollTo(index)  # solo mueve el scroll si la fila no se ve
+
+    def restore_cell(self):
+        """Si el foco quedó en la tabla sin celda abierta, abre la celda de la fila."""
+        table = self.ui.table_lines
+        editing = table.state() == QAbstractItemView.State.EditingState
+        if self.focusWidget() is table and not editing:
+            self.go_to(self.row)
 
     # ---- Teclas de la celda del código ----
     def on_key(self, action: str, text: str):
@@ -309,6 +327,14 @@ class PointOfSale(QMainWindow):
         ):
             self.go_to(self.row)
             return True
+        # Clic en la parte vacía de la tabla (debajo de las filas): la celda se cerraba
+        table = self.ui.table_lines
+        if (
+            obj is table.viewport()
+            and event.type() == QEvent.Type.MouseButtonRelease
+            and not table.indexAt(event.position().toPoint()).isValid()
+        ):
+            QTimer.singleShot(0, self.restore_cell)
         return super().eventFilter(obj, event)
 
     # ---- Limpiar (Ctrl+L) ----

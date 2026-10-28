@@ -77,13 +77,14 @@ class CustomerService:
 
     def _types(self) -> dict[str, int]:
         if self._type_ids is None:
-            rows = self.odoo.call(
-                'ir.model.data',
-                'search_read',
-                domain=[['model', '=', 'l10n_latam.identification.type']],
-                fields=['module', 'name', 'res_id'],
-            )
-            by_xmlid = {(row['module'], row['name']): row['res_id'] for row in rows}
+            model = 'l10n_latam.identification.type'
+            ids = self.odoo.call(model, 'search', domain=[])
+            xmlids = self.odoo.call(model, 'get_external_id', ids=ids)
+            by_xmlid = {
+                tuple(xmlid.split('.', 1)): int(type_id)
+                for type_id, xmlid in xmlids.items()
+                if xmlid
+            }
             self._type_ids = {
                 kind: by_xmlid.get(xmlid, 0) for kind, xmlid in ID_TYPE_XMLIDS.items()
             }

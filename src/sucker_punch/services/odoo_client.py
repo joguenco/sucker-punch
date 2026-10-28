@@ -115,10 +115,17 @@ class OdooClient:
             ids=[odoo_user['company_id'][0]],
             fields=['country_code', 'tax_calculation_rounding_method'],
         )[0]
+        try:
+            allowed = self.call(
+                'res.users', 'read', ids=[uid], fields=['allowed_journal_ids']
+            )[0]['allowed_journal_ids']
+        except OdooError:  # sin el módulo account_restrict_journal no existe ese campo
+            allowed = []
         return Session(
             uid=uid,
             user_name=odoo_user['name'],
             company_name=odoo_user['company_id'][1],
             country_code=company['country_code'] or '',
             tax_rounding=company['tax_calculation_rounding_method'] or 'round_per_line',
+            allowed_journal_ids=allowed,
         )
