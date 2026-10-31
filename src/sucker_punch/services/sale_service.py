@@ -257,6 +257,7 @@ class SaleService:
             already = f'\n\nYa quedó hecho en Odoo: {", ".join(done)}.' if done else ''
             raise SaleError(f'No se pudo {step}.\n\n{error}{already}') from None
 
+        number, access_key = self._printed_data(invoice_id)
         return SaleResult(
             order=order['name'],
             invoice=invoice['name'],
@@ -264,4 +265,23 @@ class SaleService:
             payment_state=PAYMENT_STATES.get(
                 invoice['payment_state'], invoice['payment_state']
             ),
+            number=number,
+            access_key=access_key,
+        )
+
+    def _printed_data(self, invoice_id: int) -> tuple[str, str]:
+        """Número y clave de acceso del SRI para la factura impresa. La venta ya está
+        guardada: si no se pueden leer (sin la localización de Ecuador), quedan vacíos."""
+        try:
+            invoice = self.odoo.call(
+                'account.move',
+                'read',
+                ids=[invoice_id],
+                fields=['l10n_latam_document_number', 'l10n_ec_xml_access_key'],
+            )[0]
+        except OdooError:
+            return '', ''
+        return (
+            invoice['l10n_latam_document_number'] or '',
+            invoice['l10n_ec_xml_access_key'] or '',
         )

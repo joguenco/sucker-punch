@@ -112,6 +112,8 @@ Cada dato se busca en este orden y se usa el primero que se encuentre:
 | `ODOO_API_KEY` | Clave API del usuario que vende (ej.: Caja) | — |
 | `FONT_SIZE` | Tamaño de letra (10 a 24) | `14` |
 | `STOCK_WARNING` | Avisar al guardar si no hay stock: `1` sí, `0` no (se vende igual y en Odoo el stock queda en negativo) | `1` |
+| `PRINTER` | Impresora de Windows (o de Linux, CUPS) donde sale la factura al guardar; vacío: no imprime | — |
+| `PRINTER_SIMULATE` | Simular impresora: `1` muestra la factura en pantalla como saldría impresa, sin imprimir | `0` |
 
 Configuración muestra al lado de cada dato de dónde sale (**Sistema**, **.env** o
 **Por defecto**) y solo escribe en el `.env`. Lo que viene del sistema queda bloqueado: se
@@ -128,6 +130,7 @@ cambia en las variables de entorno. Ejemplo en `.env.example`.
 | Shift+F6 | Borrar la línea; las de abajo suben |
 | Ctrl+F | Buscar una línea dentro de la factura |
 | Ctrl+L | Limpiar la factura (como recién abierta) |
+| Ctrl+P | Reimprimir la última factura guardada |
 | Ctrl+Enter | Guardar: abre **Pago Efectivo** y luego **Cambio** |
 
 **Pago Efectivo**: Efectivo, Tarjeta, Depósito / Transferencia y Otros; se puede dividir.
@@ -139,6 +142,22 @@ Identificación lo busca en Odoo: si existe se llenan sus datos y el cursor va a
 no, se escriben y se crea al guardar. Razón Social, Email y Dirección se pueden corregir:
 al guardar se actualizan en Odoo (`res.partner` → `write`), solo lo que cambió. El
 Consumidor Final no se edita. Más de $50 solo con cédula o RUC (regla del SRI).
+
+## Factura impresa
+Al guardar, si la factura quedó confirmada en Odoo, sale en la impresora de
+Configuración, o en la ventana **Simulación de impresora** si está encendido Simular
+impresora (Esc la cierra). Configuración → Probar impresora saca una factura de ejemplo.
+
+El formato es una plantilla XML como `Printer.Ticket.xml` de DonPos:
+`src/sucker_punch/templates/factura.xml` (etiquetas `ticket`, `line`, `text` con `align`,
+`length` y `bold`, `cut` y `opendrawer`; los datos en sintaxis Jinja2, `{{ ... }}`). Para
+cambiarla sin volver a compilar, se copia junto al `.env` con el nombre `factura.xml` y se
+edita ahí: si existe, se usa esa.
+
+La app solo imprime: no manda la orden de abrir el cajón (`<opendrawer/>` de la
+plantilla todavía no se usa). Con impresoras de Windows, el corte del papel y el cajón
+conectado a la impresora los hace su driver, si se configura en las preferencias de la
+impresora (por ejemplo, abrir el cajón al imprimir).
 Esc vuelve a Pago Efectivo. Al terminar sale «Compra realizada» (y si el cliente es nuevo
 o se actualizó).
 

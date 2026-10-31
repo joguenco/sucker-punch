@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+{#
+    Factura impresa de Sucker Punch. Mismo formato que Printer.Ticket.xml de DonPos:
+
+    <ticket>                          lo que sale en el papel
+      <line size="0">                 una línea (size 1: doble alto, 2: doble ancho, 3: los dos)
+        <text align="left" length="16" bold="true">texto</text>
+                                      align: left, right o center; length: columnas
+      </line>
+      <cut/>                          corta el papel
+    </ticket>
+    <opendrawer/>                     pide abrir el cajón del dinero (todavía no se manda
+                                      a la impresora: hoy lo abre su driver, ver README)
+
+    Los datos van entre {{ }} y las condiciones y repeticiones entre {% %} (Jinja2).
+    Para cambiar el formato sin volver a compilar: copia este archivo junto al .env con
+    el nombre factura.xml y edítalo ahí.
+
+    Datos:
+      company: name, business_name, vat, address, phone, email, regimen,
+               retention_agent, forced_accounting (SI/NO), environment
+      ticket:  number, access_key_line1, access_key_line2, date, quantity,
+               rate_0, rate_vat, vat, total, cash, change, payments, user, terminal
+      ticket.customer: vat, name, street, email
+      ticket.lines:    code, name, quantity, price, total, taxed
+      Filtros: money (2 decimales), qty (cantidad sin ceros de más)
+
+    Este comentario va entre llave-numeral y numeral-llave: Jinja2 no lo lee.
+#}
+<output>
+    {% if ticket.cash %}
+    <opendrawer/>
+    {% endif %}
+
+    <ticket>
+        {% if company.business_name %}
+        <line><text align="center" length="40">{{ company.business_name }}</text></line>
+        {% endif %}
+        {% if company.name %}
+        <line><text align="center" length="40">{{ company.name }}</text></line>
+        {% endif %}
+        {% if company.vat %}
+        <line><text align="center" length="40">RUC: {{ company.vat }}</text></line>
+        {% endif %}
+        {% if company.address %}
+        <line><text align="center" length="40">{{ company.address }}</text></line>
+        {% endif %}
+        {% if company.phone %}
+        <line><text align="center" length="40">{{ company.phone }}</text></line>
+        {% endif %}
+        {% if company.email %}
+        <line><text align="center" length="40">{{ company.email }}</text></line>
+        {% endif %}
+
+        {% if company.forced_accounting == 'SI' %}
+        <line><text align="center" length="40">Obligado a llevar contabilidad: SI</text></line>
+        {% endif %}
+        {% if company.regimen %}
+        <line><text align="center" length="40">{{ company.regimen }}</text></line>
+        {% endif %}
+        {% if company.retention_agent %}
+        <line><text align="center" length="40">Agente de retención resolución No: {{ company.retention_agent }}</text></line>
+        {% endif %}
+
+        {% if ticket.access_key_line1 %}
+        <line><text align="center" length="40">Clave de acceso:</text></line>
+        <line><text>{{ ticket.access_key_line1 }}</text></line>
+        <line><text align="center" length="40">{{ ticket.access_key_line2 }}</text></line>
+        {% if company.environment %}
+        <line><text align="center" length="40">Ambiente: {{ company.environment }}</text></line>
+        {% endif %}
+        {% endif %}
+
+        <line><text align="left" length="40">Factura: {{ ticket.number }}</text></line>
+        <line><text align="left" length="40">Fecha: {{ ticket.date.strftime('%d/%m/%Y %H:%M') }}</text></line>
+        <line><text align="left" length="40">Identificación: {{ ticket.customer.vat }}</text></line>
+        <line><text align="left" length="40">Cliente: {{ ticket.customer.name }}</text></line>
+        {% if ticket.customer.street %}
+        <line><text align="left" length="40">Dirección: {{ ticket.customer.street }}</text></line>
+        {% endif %}
+        {% if ticket.customer.email %}
+        <line><text align="left" length="40">E-mail: {{ ticket.customer.email }}</text></line>
+        {% endif %}
+
+        <line></line>
+        <line>
+            <text align="left" length="16">Producto</text>
+            <text align="right" length="8">Precio</text>
+            <text align="right" length="5"></text>
+            <text align="right" length="9">Valor</text>
+        </line>
+        <line><text align="left" length="40">- - - - - - - - - - - - - - - - - - - -</text></line>
+        {% for line in ticket.lines %}
+        <line>
+            <text align="left" length="16">{{ line.name }}</text>
+            <text align="right" length="8">{{ line.price|money }}</text>
+            <text align="right" length="5">x{{ line.quantity|qty }}</text>
+            <text align="right" length="8">{{ line.total|money }}</text>
+            <text align="right" length="2">{{ 'i' if line.taxed else ' ' }}</text>
+        </line>
+        {% endfor %}
+        <line><text align="left" length="40">- - - - - - - - - - - - - - - - - - - -</text></line>
+
+        <line>
+            <text>Productos: </text>
+            <text align="left" length="14">{{ ticket.quantity|qty }}</text>
+        </line>
+        <line>
+            <text align="left" length="16" bold="true">Subtotal</text>
+            <text align="right" length="24">{{ (ticket.rate_0 + ticket.rate_vat)|money }}</text>
+        </line>
+        {% if ticket.rate_0 %}
+        <line>
+            <text align="left" length="16">Tarifa 0%</text>
+            <text align="right" length="24">{{ ticket.rate_0|money }}</text>
+        </line>
+        {% endif %}
+        {% if ticket.rate_vat %}
+        <line>
+            <text align="left" length="16">Tarifa IVA</text>
+            <text align="right" length="24">{{ ticket.rate_vat|money }}</text>
+        </line>
+        {% endif %}
+        <line>
+            <text align="left" length="16">IVA</text>
+            <text align="right" length="24">{{ ticket.vat|money }}</text>
+        </line>
+        <line size="1">
+            <text align="left" length="16" bold="true">Total</text>
+            <text align="right" length="24" bold="true">{{ ticket.total|money }}</text>
+        </line>
+
+        {% if ticket.cash %}
+        <line><text bold="true">Efectivo:</text></line>
+        <line>
+            <text align="left" length="20">Entregado:</text>
+            <text align="right" length="20">{{ ticket.cash|money }}</text>
+        </line>
+        <line>
+            <text align="left" length="20">Cambio:</text>
+            <text align="right" length="20">{{ ticket.change|money }}</text>
+        </line>
+        {% endif %}
+        {% for payment in ticket.payments %}
+        <line>
+            <text align="left" length="26" bold="true">{{ payment.name }}:</text>
+            <text align="right" length="14">{{ payment.amount|money }}</text>
+        </line>
+        {% endfor %}
+
+        <line></line>
+        {% if ticket.terminal %}
+        <line><text align="left" length="15">Terminal:</text><text>{{ ticket.terminal }}</text></line>
+        {% endif %}
+        <line><text align="left" length="15">Atendido por:</text><text>{{ ticket.user }}</text></line>
+        <cut/>
+    </ticket>
+</output>

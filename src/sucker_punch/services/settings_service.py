@@ -29,6 +29,8 @@ VARIABLES = {
     'api_key': 'ODOO_API_KEY',
     'font_size': 'FONT_SIZE',
     'stock_warning': 'STOCK_WARNING',
+    'printer': 'PRINTER',
+    'printer_simulate': 'PRINTER_SIMULATE',
 }
 
 
@@ -106,6 +108,7 @@ class SettingsService:
             font_size = default.font_size
         values['font_size'] = min(max(font_size, FONT_SIZE_MIN), FONT_SIZE_MAX)
         values['stock_warning'] = to_bool(values['stock_warning'])
+        values['printer_simulate'] = to_bool(values['printer_simulate'])
         return Settings(**values, sources=sources)
 
     def save(self, settings: Settings):

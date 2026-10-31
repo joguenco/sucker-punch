@@ -25,11 +25,14 @@ from ..models.payment import Payment
 from ..models.product import Product
 from ..models.sale_line import SaleLine
 from ..models.session import Session
+from ..models.ticket import Ticket
 from ..services.customer_service import CustomerService
 from ..services.odoo_client import OdooClient, OdooError
 from ..services.odoo_totals import compute_totals
+from ..services.printer_service import PrinterError
 from ..services.product_service import ProductService
 from ..services.sale_service import SaleError, SaleService
+from ..services.ticket_service import TicketError, build_ticket, render
 from ..views.ui_point_of_sale import Ui_PointOfSale
 from .barcode_delegate import BarcodeDelegate
 from .change import ChangeDialog
@@ -38,6 +41,7 @@ from .price_delegate import PriceDelegate
 from .product_search import ProductSearch
 from .sale_lines_table import DEFAULT_WIDTH, WIDTHS, SaleLinesTable
 from .theme import busy
+from .ticket_preview import show_or_print
 
 # "5.CODIGO" o "5*CODIGO" -> cantidad 5, busca "CODIGO". Decimales con coma o punto:
 # "1,5.CODIGO", "1.5.CODIGO", "1.5*CODIGO"
@@ -64,12 +68,17 @@ class PointOfSale(QMainWindow):
         session: Session,
         parent=None,
         stock_warning: bool = True,  # Configuración → Avisar cuando no hay stock
+        printer: str = '',  # Configuración → Impresora ('' = no imprime)
+        printer_simulate: bool = False,  # Configuración → Simular impresora
     ):
         super().__init__(parent)
         self.ui = Ui_PointOfSale()
         self.ui.setupUi(self)
         self.session = session
         self.stock_warning = stock_warning
+        self.printer = printer
+        self.printer_simulate = printer_simulate
+        self.last_ticket = None  # última factura guardada, para reimprimir con Ctrl+P
         self.products = ProductService(odoo)
         self.sales = SaleService(odoo, session.allowed_journal_ids)
         self.customers = CustomerService(odoo)
@@ -98,6 +107,7 @@ class PointOfSale(QMainWindow):
             QShortcut(QKeySequence(keys), self, self.save)
         QShortcut(QKeySequence('Ctrl+F'), self, self.focus_find)
         QShortcut(QKeySequence('Ctrl+L'), self, self.clear_invoice)
+        QShortcut(QKeySequence('Ctrl+P'), self, self.reprint)
         self.ui.txt_find.returnPressed.connect(self.find_line)
         self.ui.txt_find.textChanged.connect(lambda: self.ui.lbl_not_found.clear())
         self.ui.txt_find.installEventFilter(self)
@@ -436,7 +446,8 @@ class PointOfSale(QMainWindow):
             self.go_to(self.row)
             return
 
-        total = self.totals()['total']
+        totals = self.totals()
+        total = totals['total']
         payment = Payment(total=total, cash=total)
         customer = None
         while True:
@@ -478,6 +489,9 @@ class PointOfSale(QMainWindow):
             'created': '  (✔ cliente nuevo)',
             'updated': '  (✔ cliente actualizado)',
         }.get(change.action, '')
+        self.last_ticket = build_ticket(
+            lines, totals, customer, payment, result, self.session
+        )
         QMessageBox.information(
             self,
             'Compra realizada',
@@ -487,3 +501,48 @@ class PointOfSale(QMainWindow):
             f'Estado: {result.payment_state}\nPedido: {result.order}',
         )
         self.reset_invoice()
+        self.print_ticket(self.last_ticket)
+
+    # ---- Factura impresa ----
+    def print_ticket(self, ticket: Ticket):
+        """Imprime la factura en la impresora de Configuración, o la muestra en
+        pantalla con Simular impresora. Sin ninguna de las dos, no hace nada."""
+        if not (self.printer or self.printer_simulate):
+            return
+        try:
+            show_or_print(render(ticket), self.printer, self.printer_simulate, self)
+        except (TicketError, PrinterError) as error:
+            QMessageBox.warning(
+                self,
+                'No se imprimió',
+                f'{error}\n\nLa venta sí quedó guardada (factura {ticket.number}). '
+                'Para intentar otra vez: Ctrl+P.',
+            )
+        self.go_to(self.row)
+
+    def reprint(self):
+        """Ctrl+P: vuelve a imprimir la última factura guardada, si se confirma
+        (Enter sí, Esc no)."""
+        if self.last_ticket is None:
+            QMessageBox.information(
+                self, 'Reimprimir', 'Todavía no se ha guardado ninguna factura.'
+            )
+        elif not (self.printer or self.printer_simulate):
+            QMessageBox.information(
+                self,
+                'Reimprimir',
+                'No hay impresora: elígela en Configuración o enciende Simular '
+                'impresora.',
+            )
+        else:
+            answer = QMessageBox.question(
+                self,
+                'Reimprimir',
+                f'¿Reimprimir la factura {self.last_ticket.number}?',
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes,
+            )
+            if answer == QMessageBox.StandardButton.Yes:
+                self.print_ticket(self.last_ticket)
+                return
+        self.go_to(self.row)

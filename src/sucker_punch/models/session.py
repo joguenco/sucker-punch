@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 
+from .company import Company
+
 
 class Session(BaseModel):
     """Usuario que entró a la app y su empresa en Odoo."""
@@ -12,3 +14,4 @@ class Session(BaseModel):
     tax_rounding: str = 'round_per_line'
     # Diarios permitidos del usuario (módulo account_restrict_journal). Vacío: todos
     allowed_journal_ids: list[int] = []
+    company: Company = Company()  # encabezado de la factura impresa

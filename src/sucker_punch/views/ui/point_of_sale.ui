@@ -246,7 +246,7 @@ QPushButton#push_save:hover { background: #e6ff8c; }</string>
     <item>
      <widget class="QLabel" name="lbl_help">
       <property name="text">
-       <string>Enter: buscar    F9: inventario    ↑ ↓: cambiar de línea    5.CODIGO: cantidad 5    F2: cambiar precio    Shift+F6: borrar línea    Ctrl+F: buscar en la factura    Ctrl+L: limpiar    Ctrl+Enter: guardar</string>
+       <string>Enter: buscar    F9: inventario    ↑ ↓: cambiar de línea    5.CODIGO: cantidad 5    F2: cambiar precio    Shift+F6: borrar línea    Ctrl+F: buscar en la factura    Ctrl+L: limpiar    Ctrl+P: reimprimir    Ctrl+Enter: guardar</string>
       </property>
       <property name="wordWrap">
        <bool>true</bool>

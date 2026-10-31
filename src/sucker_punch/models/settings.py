@@ -21,6 +21,10 @@ class Settings(BaseModel):
     # Al guardar, avisar si un producto no tiene stock (apagado: se vende igual y en
     # Odoo el stock queda en negativo)
     stock_warning: bool = True
+    # Impresora de Windows donde sale la factura al guardar ('' = no imprime)
+    printer: str = ''
+    # Encendido: la factura se muestra en pantalla como saldría impresa, sin imprimir
+    printer_simulate: bool = False
     # campo → FROM_SYSTEM, FROM_ENV_FILE o FROM_DEFAULT ('' si no está en ningún lado)
     sources: dict[str, str] = Field(default_factory=dict)
 

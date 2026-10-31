@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>680</width>
-    <height>520</height>
+    <height>640</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,7 +16,8 @@
   <property name="styleSheet">
    <string notr="true">QLabel#lbl_url_source, QLabel#lbl_database_source,
 QLabel#lbl_api_key_source, QLabel#lbl_font_size_source,
-QLabel#lbl_stock_warning_source {
+QLabel#lbl_stock_warning_source, QLabel#lbl_printer_source,
+QLabel#lbl_printer_simulate_source {
 	color: #666666;
 }
 /* La casilla crece con el tamaño de letra (1em = alto de la letra) */
@@ -224,6 +225,87 @@ QCheckBox::indicator { width: 1em; height: 1em; }</string>
     </widget>
    </item>
    <item>
+    <widget class="QGroupBox" name="group_printer">
+     <property name="title">
+      <string>Impresora</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_4" columnstretch="0,1,0">
+      <item row="0" column="0">
+       <widget class="QLabel" name="lbl_printer">
+        <property name="text">
+         <string>Impresora</string>
+        </property>
+        <property name="buddy">
+         <cstring>cmb_printer</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QComboBox" name="cmb_printer">
+        <property name="toolTip">
+         <string>Impresora instalada en Windows donde sale la factura al guardar</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="QLabel" name="lbl_printer_source">
+        <property name="minimumSize">
+         <size>
+          <width>90</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="toolTip">
+         <string>De dónde se lee: Sistema (variable de entorno) o .env (archivo junto al programa)</string>
+        </property>
+        <property name="text">
+         <string>.env</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0" colspan="2">
+       <widget class="QCheckBox" name="chk_printer_simulate">
+        <property name="toolTip">
+         <string>Encendido: al guardar se muestra la factura en pantalla como saldría impresa, sin mandarla a la impresora.</string>
+        </property>
+        <property name="text">
+         <string>Simular impresora (mostrar la factura en pantalla)</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="QLabel" name="lbl_printer_simulate_source">
+        <property name="minimumSize">
+         <size>
+          <width>90</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="toolTip">
+         <string>De dónde se lee: Sistema (variable de entorno) o .env (archivo junto al programa)</string>
+        </property>
+        <property name="text">
+         <string>.env</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QPushButton" name="push_test_printer">
+        <property name="toolTip">
+         <string>Imprime (o muestra, con Simular impresora) una factura de ejemplo</string>
+        </property>
+        <property name="text">
+         <string>Probar impresora</string>
+        </property>
+        <property name="autoDefault">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
     <widget class="QLabel" name="lbl_status">
      <property name="text">
       <string/>
@@ -306,6 +388,9 @@ QCheckBox::indicator { width: 1em; height: 1em; }</string>
   <tabstop>txt_api_key</tabstop>
   <tabstop>spin_font_size</tabstop>
   <tabstop>chk_stock_warning</tabstop>
+  <tabstop>cmb_printer</tabstop>
+  <tabstop>chk_printer_simulate</tabstop>
+  <tabstop>push_test_printer</tabstop>
   <tabstop>push_save</tabstop>
   <tabstop>push_cancel</tabstop>
   <tabstop>push_test</tabstop>

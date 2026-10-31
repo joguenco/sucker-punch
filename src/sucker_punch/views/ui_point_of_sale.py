@@ -404,7 +404,7 @@ class Ui_PointOfSale(object):
         self.lbl_help.setText(
             QCoreApplication.translate(
                 'PointOfSale',
-                'Enter: buscar    F9: inventario    \u2191 \u2193: cambiar de l\u00ednea    5.CODIGO: cantidad 5    F2: cambiar precio    Shift+F6: borrar l\u00ednea    Ctrl+F: buscar en la factura    Ctrl+L: limpiar    Ctrl+Enter: guardar',
+                'Enter: buscar    F9: inventario    \u2191 \u2193: cambiar de l\u00ednea    5.CODIGO: cantidad 5    F2: cambiar precio    Shift+F6: borrar l\u00ednea    Ctrl+F: buscar en la factura    Ctrl+L: limpiar    Ctrl+P: reimprimir    Ctrl+Enter: guardar',
                 None,
             )
         )

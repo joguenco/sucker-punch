@@ -43,6 +43,7 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
+    QComboBox,
     QDialog,
     QFrame,
     QGridLayout,
@@ -63,11 +64,12 @@ class Ui_Settings(object):
     def setupUi(self, Settings):
         if not Settings.objectName():
             Settings.setObjectName('Settings')
-        Settings.resize(680, 520)
+        Settings.resize(680, 640)
         Settings.setStyleSheet(
             'QLabel#lbl_url_source, QLabel#lbl_database_source,\n'
             'QLabel#lbl_api_key_source, QLabel#lbl_font_size_source,\n'
-            'QLabel#lbl_stock_warning_source {\n'
+            'QLabel#lbl_stock_warning_source, QLabel#lbl_printer_source,\n'
+            'QLabel#lbl_printer_simulate_source {\n'
             '	color: #666666;\n'
             '}\n'
             '/* La casilla crece con el tama\u00f1o de letra (1em = alto de la letra) */\n'
@@ -192,6 +194,47 @@ class Ui_Settings(object):
 
         self.verticalLayout.addWidget(self.group_sales)
 
+        self.group_printer = QGroupBox(Settings)
+        self.group_printer.setObjectName('group_printer')
+        self.gridLayout_4 = QGridLayout(self.group_printer)
+        self.gridLayout_4.setObjectName('gridLayout_4')
+        self.lbl_printer = QLabel(self.group_printer)
+        self.lbl_printer.setObjectName('lbl_printer')
+
+        self.gridLayout_4.addWidget(self.lbl_printer, 0, 0, 1, 1)
+
+        self.cmb_printer = QComboBox(self.group_printer)
+        self.cmb_printer.setObjectName('cmb_printer')
+
+        self.gridLayout_4.addWidget(self.cmb_printer, 0, 1, 1, 1)
+
+        self.lbl_printer_source = QLabel(self.group_printer)
+        self.lbl_printer_source.setObjectName('lbl_printer_source')
+        self.lbl_printer_source.setMinimumSize(QSize(90, 0))
+
+        self.gridLayout_4.addWidget(self.lbl_printer_source, 0, 2, 1, 1)
+
+        self.chk_printer_simulate = QCheckBox(self.group_printer)
+        self.chk_printer_simulate.setObjectName('chk_printer_simulate')
+
+        self.gridLayout_4.addWidget(self.chk_printer_simulate, 1, 0, 1, 2)
+
+        self.lbl_printer_simulate_source = QLabel(self.group_printer)
+        self.lbl_printer_simulate_source.setObjectName('lbl_printer_simulate_source')
+        self.lbl_printer_simulate_source.setMinimumSize(QSize(90, 0))
+
+        self.gridLayout_4.addWidget(self.lbl_printer_simulate_source, 1, 2, 1, 1)
+
+        self.push_test_printer = QPushButton(self.group_printer)
+        self.push_test_printer.setObjectName('push_test_printer')
+        self.push_test_printer.setAutoDefault(False)
+
+        self.gridLayout_4.addWidget(self.push_test_printer, 2, 0, 1, 1)
+
+        self.gridLayout_4.setColumnStretch(1, 1)
+
+        self.verticalLayout.addWidget(self.group_printer)
+
         self.lbl_status = QLabel(Settings)
         self.lbl_status.setObjectName('lbl_status')
         self.lbl_status.setWordWrap(True)
@@ -234,11 +277,17 @@ class Ui_Settings(object):
 
         self.verticalLayout.addWidget(self.frameButtons)
 
+        # if QT_CONFIG(shortcut)
+        self.lbl_printer.setBuddy(self.cmb_printer)
+        # endif // QT_CONFIG(shortcut)
         QWidget.setTabOrder(self.txt_url, self.txt_database)
         QWidget.setTabOrder(self.txt_database, self.txt_api_key)
         QWidget.setTabOrder(self.txt_api_key, self.spin_font_size)
         QWidget.setTabOrder(self.spin_font_size, self.chk_stock_warning)
-        QWidget.setTabOrder(self.chk_stock_warning, self.push_save)
+        QWidget.setTabOrder(self.chk_stock_warning, self.cmb_printer)
+        QWidget.setTabOrder(self.cmb_printer, self.chk_printer_simulate)
+        QWidget.setTabOrder(self.chk_printer_simulate, self.push_test_printer)
+        QWidget.setTabOrder(self.push_test_printer, self.push_save)
         QWidget.setTabOrder(self.push_save, self.push_cancel)
         QWidget.setTabOrder(self.push_cancel, self.push_test)
 
@@ -363,6 +412,71 @@ class Ui_Settings(object):
         # endif // QT_CONFIG(tooltip)
         self.lbl_stock_warning_source.setText(
             QCoreApplication.translate('Settings', '.env', None)
+        )
+        self.group_printer.setTitle(
+            QCoreApplication.translate('Settings', 'Impresora', None)
+        )
+        self.lbl_printer.setText(
+            QCoreApplication.translate('Settings', 'Impresora', None)
+        )
+        # if QT_CONFIG(tooltip)
+        self.cmb_printer.setToolTip(
+            QCoreApplication.translate(
+                'Settings',
+                'Impresora instalada en Windows donde sale la factura al guardar',
+                None,
+            )
+        )
+        # endif // QT_CONFIG(tooltip)
+        # if QT_CONFIG(tooltip)
+        self.lbl_printer_source.setToolTip(
+            QCoreApplication.translate(
+                'Settings',
+                'De d\u00f3nde se lee: Sistema (variable de entorno) o .env (archivo junto al programa)',
+                None,
+            )
+        )
+        # endif // QT_CONFIG(tooltip)
+        self.lbl_printer_source.setText(
+            QCoreApplication.translate('Settings', '.env', None)
+        )
+        # if QT_CONFIG(tooltip)
+        self.chk_printer_simulate.setToolTip(
+            QCoreApplication.translate(
+                'Settings',
+                'Encendido: al guardar se muestra la factura en pantalla como saldr\u00eda impresa, sin mandarla a la impresora.',
+                None,
+            )
+        )
+        # endif // QT_CONFIG(tooltip)
+        self.chk_printer_simulate.setText(
+            QCoreApplication.translate(
+                'Settings', 'Simular impresora (mostrar la factura en pantalla)', None
+            )
+        )
+        # if QT_CONFIG(tooltip)
+        self.lbl_printer_simulate_source.setToolTip(
+            QCoreApplication.translate(
+                'Settings',
+                'De d\u00f3nde se lee: Sistema (variable de entorno) o .env (archivo junto al programa)',
+                None,
+            )
+        )
+        # endif // QT_CONFIG(tooltip)
+        self.lbl_printer_simulate_source.setText(
+            QCoreApplication.translate('Settings', '.env', None)
+        )
+        # if QT_CONFIG(tooltip)
+        self.push_test_printer.setToolTip(
+            QCoreApplication.translate(
+                'Settings',
+                'Imprime (o muestra, con Simular impresora) una factura de ejemplo',
+                None,
+            )
+        )
+        # endif // QT_CONFIG(tooltip)
+        self.push_test_printer.setText(
+            QCoreApplication.translate('Settings', 'Probar impresora', None)
         )
         self.lbl_status.setText('')
         self.push_test.setText(

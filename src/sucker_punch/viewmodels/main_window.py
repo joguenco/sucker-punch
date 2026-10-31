@@ -110,7 +110,11 @@ class MainWindow(QMainWindow):
         # Sin padre: una ventana con padre no tiene botón en la barra de tareas, y con el
         # menú escondido la app solo se encontraba con Win+Tab
         self.point_of_sale = PointOfSale(
-            self.odoo, self.session, stock_warning=self.settings.stock_warning
+            self.odoo,
+            self.session,
+            stock_warning=self.settings.stock_warning,
+            printer=self.settings.printer,
+            printer_simulate=self.settings.printer_simulate,
         )
         self.point_of_sale.closed.connect(self.show_menu)
         self.point_of_sale.show()

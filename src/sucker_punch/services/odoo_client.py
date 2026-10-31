@@ -6,6 +6,7 @@ cabecera Authorization. Los argumentos van siempre con nombre (domain=..., field
 
 import requests
 
+from ..models.company import Company
 from ..models.session import Session
 from ..models.settings import Settings
 
@@ -128,4 +129,82 @@ class OdooClient:
             country_code=company['country_code'] or '',
             tax_rounding=company['tax_calculation_rounding_method'] or 'round_per_line',
             allowed_journal_ids=allowed,
+            company=self._company(
+                odoo_user['company_id'][0], company['country_code'] or ''
+            ),
         )
+
+    def _company(self, company_id: int, country_code: str) -> Company:
+        """Datos de la empresa para la factura impresa. Lo que no se pueda leer queda
+        vacío: no impide entrar a la app."""
+        try:
+            row = self.call(
+                'res.company',
+                'read',
+                ids=[company_id],
+                fields=['name', 'vat', 'street', 'street2', 'city', 'phone', 'email'],
+            )[0]
+        except OdooError:
+            return Company()
+        address = ', '.join(
+            part for part in (row['street'], row['street2'], row['city']) if part
+        )
+        company = Company(
+            name=row['name'],
+            vat=row['vat'],
+            address=address,
+            phone=row['phone'],
+            email=row['email'],
+        )
+        if country_code != 'EC':
+            return company
+
+        try:  # campos de la localización de Ecuador (l10n_ec_base, l10n_ec_account_edi)
+            ec = self.call(
+                'res.company',
+                'read',
+                ids=[company_id],
+                fields=[
+                    'l10n_ec_business_name',
+                    'l10n_ec_regimen',
+                    'l10n_ec_retention_agent',
+                    'l10n_ec_type_environment',
+                    'partner_id',
+                ],
+            )[0]
+            regimens = self.call(
+                'res.company',
+                'fields_get',
+                allfields=['l10n_ec_regimen'],
+                attributes=['selection'],
+            )['l10n_ec_regimen']['selection']
+        except OdooError:
+            return company
+        company.business_name = ec['l10n_ec_business_name'] or ''
+        company.regimen = dict(regimens).get(ec['l10n_ec_regimen'], '')
+        company.retention_agent = ec['l10n_ec_retention_agent'] or ''
+        company.environment = {'test': 'Pruebas', 'production': 'Producción'}.get(
+            ec['l10n_ec_type_environment'], ''
+        )
+        # Obligado a llevar contabilidad: SI, salvo que la posición fiscal de la empresa
+        # diga que no (igual que el XML del SRI en l10n_ec_account_edi)
+        try:
+            position = self.call(
+                'res.partner',
+                'read',
+                ids=[ec['partner_id'][0]],
+                fields=['property_account_position_id'],
+            )[0]['property_account_position_id']
+            no_accounting = (
+                position
+                and self.call(
+                    'account.fiscal.position',
+                    'read',
+                    ids=[position[0]],
+                    fields=['l10n_ec_no_account'],
+                )[0]['l10n_ec_no_account']
+            )
+            company.forced_accounting = 'NO' if no_accounting else 'SI'
+        except OdooError:
+            pass
+        return company

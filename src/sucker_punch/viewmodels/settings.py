@@ -3,11 +3,16 @@ from PySide6.QtWidgets import QDialog
 
 from ..models.settings import Settings
 from ..services.odoo_client import OdooClient, OdooError
+from ..services.printer_service import PrinterError, printer_names
+from ..services.ticket_service import TicketError, render, sample_ticket
 from ..views.ui_settings import Ui_Settings
+from .ticket_preview import show_or_print
+
+NO_PRINTER = '(Sin impresora)'
 
 
 class SettingsDialog(QDialog):
-    """Configuración: conexión a Odoo, tamaño de letra y aviso de stock.
+    """Configuración: conexión a Odoo, tamaño de letra, aviso de stock e impresora.
 
     Enter guarda, Esc cancela, Espacio marca o desmarca la casilla.
 
@@ -30,6 +35,11 @@ class SettingsDialog(QDialog):
                 self.ui.chk_stock_warning,
                 self.ui.lbl_stock_warning_source,
             ),
+            'printer': (self.ui.cmb_printer, self.ui.lbl_printer_source),
+            'printer_simulate': (
+                self.ui.chk_printer_simulate,
+                self.ui.lbl_printer_simulate_source,
+            ),
         }
 
         self.ui.txt_url.setText(settings.url)
@@ -37,6 +47,8 @@ class SettingsDialog(QDialog):
         self.ui.txt_api_key.setText(settings.api_key)
         self.ui.spin_font_size.setValue(settings.font_size)
         self.ui.chk_stock_warning.setChecked(settings.stock_warning)
+        self.fill_printers(settings.printer)
+        self.ui.chk_printer_simulate.setChecked(settings.printer_simulate)
         self.update_preview(settings.font_size)
         for field, (editor, source) in self.fields.items():
             source.setText(settings.sources.get(field, ''))
@@ -44,6 +56,7 @@ class SettingsDialog(QDialog):
 
         self.ui.spin_font_size.valueChanged.connect(self.update_preview)
         self.ui.push_test.clicked.connect(self.test_connection)
+        self.ui.push_test_printer.clicked.connect(self.test_printer)
         self.ui.push_save.clicked.connect(self.save)
         self.ui.push_cancel.clicked.connect(self.reject)
         editable = [editor for editor, _ in self.fields.values() if editor.isEnabled()]
@@ -56,7 +69,44 @@ class SettingsDialog(QDialog):
             api_key=self.ui.txt_api_key.text().strip(),
             font_size=self.ui.spin_font_size.value(),
             stock_warning=self.ui.chk_stock_warning.isChecked(),
+            printer=self.ui.cmb_printer.currentData() or '',
+            printer_simulate=self.ui.chk_printer_simulate.isChecked(),
             sources=self.settings.sources,
+        )
+
+    def fill_printers(self, current: str):
+        """Las impresoras instaladas. La guardada se mantiene aunque ya no esté."""
+        combo = self.ui.cmb_printer
+        combo.addItem(NO_PRINTER, '')
+        names = printer_names()
+        for name in names:
+            combo.addItem(name, name)
+        if current and current not in names:
+            combo.addItem(f'{current} (no instalada)', current)
+        combo.setCurrentIndex(max(0, combo.findData(current)))
+
+    def test_printer(self):
+        """Imprime una factura de ejemplo, o la muestra con Simular impresora."""
+        settings = self.form_settings()
+        if not (settings.printer or settings.printer_simulate):
+            self.ui.lbl_status.setText(
+                '❌ Elige una impresora o enciende Simular impresora.'
+            )
+            return
+        try:
+            show_or_print(
+                render(sample_ticket()),
+                settings.printer,
+                settings.printer_simulate,
+                self,
+            )
+        except (TicketError, PrinterError) as error:
+            self.ui.lbl_status.setText(f'❌ {error}')
+            return
+        self.ui.lbl_status.setText(
+            '✔ Así sale la factura.'
+            if settings.printer_simulate
+            else f'✔ Se mandó una factura de ejemplo a «{settings.printer}».'
         )
 
     def update_preview(self, size: int):
